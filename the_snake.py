@@ -8,6 +8,7 @@ GRID_SIZE = 20
 GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
 GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
 START_POSITION = ((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))
+TOTAL_GRIDS = GRID_HEIGHT * GRID_WIDTH
 
 # Направления движения:
 UP = (0, -1)
@@ -44,7 +45,9 @@ clock = pygame.time.Clock()
 class GameObject:
     """Класс для описания игровых объектов"""
 
-    def __init__(self, body_color=None, position=None):
+    def __init__(
+            self, body_color=BOARD_BACKGROUND_COLOR, position=START_POSITION
+    ):
         """Описывает базовые параметры объектов"""
         self.position = position
         self.body_color = body_color
@@ -52,7 +55,7 @@ class GameObject:
     def draw(self):
         """Заготовка метода"""
         raise NotImplementedError(
-            'Определите draw в %s.' % (self.__class__.__name__)
+            f'Определите draw в {(self.__class__.__name__)}'
         )
 
     def draw_rect(self, position):
@@ -127,17 +130,6 @@ class Snake(GameObject):
 class Apple(GameObject):
     """Класс для описания яблока"""
 
-    def __init__(
-            self, body_color=APPLE_COLOR, position=START_POSITION,
-            snake=[START_POSITION]
-    ):
-        """
-        Задаёт цвет яблока и вызывает метод randomize_position,
-        чтобы установить начальную позицию яблока.
-        """
-        super().__init__(body_color, position)
-        self.randomize_position(snake)
-
     def draw(self):
         """Рисует яблоко"""
         self.draw_rect(self.position)
@@ -147,11 +139,19 @@ class Apple(GameObject):
         Определяет случайную позицию на экране
         Отслеживает чтобы яблоко не появилось на змее
         """
-        while self.position is None or (self.position in snake):
+        if TOTAL_GRIDS <= len(snake.positions):
+            print(
+                f'Вы сделали змейку длинной {TOTAL_GRIDS}!'
+                ' и заполнили всё игровое поле!'
+            )
+            print('Это невероятно! Вы великолепны!')
+            exit()
+        while self.position is None or (self.position in snake.positions):
             self.position = (
                 (choice(range(0, GRID_WIDTH))) * GRID_SIZE,
                 (choice(range(0, GRID_HEIGHT))) * GRID_SIZE
             )
+        return self.position
 
 
 # Функция обработки действий пользователя
@@ -178,7 +178,9 @@ def main():
     pygame.init()
     # Тут нужно создать экземпляры классов.
     snake = Snake(SNAKE_COLOR, START_POSITION)
-    apple = Apple(APPLE_COLOR, None, snake.positions)
+    apple = Apple(
+        APPLE_COLOR, Apple.randomize_position(Apple(), snake)
+    )
     while True:
         apple.draw()
         clock.tick(SPEED)
@@ -189,7 +191,7 @@ def main():
         # Тут опишите основную логику игры.
         if snake.get_head_position() == apple.position:
             snake.length += 1
-            apple.randomize_position(snake.positions)
+            apple.randomize_position(snake)
             apple.draw()
         if snake.length == 1:
             pass
